@@ -1,0 +1,184 @@
+#!/bin/bash
+
+USAGE="This utitity allows you to create and perform a series of actions in the context of that file.
+
+USAGE: $0 [ACTION]... FILENAME
+
+ACTIONS
+-------
+    -S:
+        adds the bash shebang to the top of the file
+    -s PATH:
+        uses the path supplied as shebang. e.g if you supplied \"/usr/bin/node\",
+        your shebang would now be \"#!/usr/bin/node\"
+    
+    -E:
+        edit the created file using vi
+    -e EDITOR:
+        edit the created file using the editor specified
+
+    -X:
+        make the created file executable
+    -x MODE:
+        changes the mode of the file created by doing (chmod MODE) on the created file
+
+    -N:
+        spawns a new shell inside the current one and continues execution after that shell is closed
+    -n:
+        supply the path to the new shell that should be spawned
+
+    -A:
+        adds the created file to git
+    -a PATH:
+        this adds an additional path to git by doing (git add PATH)
+
+    -C:
+        does a git commit
+    -c MESSAGE:
+        does a git commit with the supplied text as commit message
+
+    -P:
+        does git push
+    -p ARGUMENT
+        does git push using text supplied as argument git push
+
+    These actions all have a default way they operate and to use the default mode, specify the action in caps e.g -C -X.
+    To alter the way the action works by default, specify the action in small letters e.g -c -x.
+    The default mode does not accept arguments but they other mode does.
+    
+    NOTE
+    -----
+    These actions are executed in the order that they are specified above.
+"
+
+usage(){
+    echo "$USAGE"
+}
+
+error(){
+    echo "$0: $1" 1>&2
+    exit 1
+}
+
+if [[ -z "$@" ]]; then
+    error "USAGE: $0 [ACTION]... FILENAME"
+fi
+
+SHEBANG=""
+EDITOR=""
+GIT_ADD=0
+FILE_MODE=""
+SPAWN_SHELL=""
+GIT_COMMIT=""
+GIT_PUSH=""
+
+while getopts "hSs:Ee:Xx:Nn:aCc:Pp:" opt; do
+    case "${opt}" in 
+    h ) usage | less && exit 0;;
+    s )
+        if [[ -n "$OPTARG" ]]; then
+            SHEBANG="#!$OPTARG"
+        fi
+    ;;
+    S ) SHEBANG="#!/bin/bash"
+    ;;
+    e )
+        if [[ -n "$OPTARG" ]]; then
+            EDITOR="$OPTARG"
+        fi
+    ;;
+    E ) EDITOR="vi"
+    ;;
+    a )
+        GIT_ADD=1
+    ;;
+    x )
+        if [[ -n "$OPTARG" ]]; then
+            FILE_MODE="$OPTARG"
+        fi
+    ;;
+    X ) FILE_MODE="u+x"
+    ;;
+    n )
+        if [[ -n "$OPTARG" ]]; then
+            SPAWN_SHELL="$OPTARG"
+        fi
+    ;;
+    N ) SPAWN_SHELL="$SHELL"
+    ;;
+    c )
+        if [[ -n "$OPTARG" ]]; then
+            GIT_COMMIT="git commit -m '$OPTARG'"
+        fi
+    ;;
+    C ) GIT_COMMIT="git commit"
+    ;;
+    p )
+        if [[ -n "$OPTARG" ]]; then
+            GIT_PUSH="git push $OPTARG"
+        fi
+    ;;
+    P ) GIT_PUSH="git push"
+    ;;
+    \? )
+        error "Invalid option: $OPTARG"
+        ;;
+    : )
+        error "$OPTARG requires an argument"
+        ;;
+    esac
+done
+shift $(expr $OPTIND - 1)
+
+if [[ $# -gt 1 ]]; then
+    error 'too many arguments specified'
+elif [[ $# = 0 ]]; then
+    error 'no filename specified'
+elif [[ -d "$1" ]] || [[ -e "$1" ]]; then
+    error "file or directory '$1' already exists"
+fi
+
+# create file
+touch "$1"
+
+# add shebang
+if [[ -n "SHEBANG" ]]; then
+    echo "adding shebang to '$1'"
+    echo "$SHEBANG" > "$1"
+fi
+
+# open file in editor
+if [[ -n "$EDITOR" ]]; then
+    echo "opening '$1' in editor"
+    $($EDITOR $1) || exit
+fi
+
+# add file to git
+if [[ $GIT_ADD -eq 1 ]]; then
+    echo "adding '$1' to git"
+    git add "$1"
+fi
+
+# change file mode
+if [[ -n "$FILE_MODE" ]]; then
+    echo "changing the mode of '$1'"
+    chmod "$FILE_MODE" "$1"
+fi
+
+# spawn a new shell (to do some other thing with file)
+if [[ -n "$SPAWN_SHELL" ]]; then
+    echo "spawning a new shell"
+    $($SPAWN_SHELL)
+fi
+
+# commit changes to git
+if [[ -n "$GIT_COMMIT" ]]; then
+    echo "commiting changes to git"
+    $($GIT_COMMIT)
+fi
+
+# push commit to github
+if [[ -n "$GIT_PUSH" ]]; then
+    echo "pushing commits to remote repository"
+    $($GIT_PUSH)
+fi

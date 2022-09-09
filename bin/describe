@@ -1,0 +1,87 @@
+#!/usr/bin/env bash
+
+
+# This script adds a new description to the README.md
+# file in the current directory
+
+
+HEADER_STYLE="#####"
+HEADER=""
+BODY=""
+ADD_NEWLINE_AFTER_HEADER=0
+
+usage(){
+
+    echo "Add a new description to your README.md
+
+    Usage: $0 [-h HEADER] [-b BODY] [-p HEADER-PREFIX]
+
+    MAIN OPTIONS
+    ============
+
+    -h => header text in the description
+    -b => body text in the description
+    -p => header style [default is heading-5 (#####)]
+    
+    ADDITIONAL OPTIONS
+    ==================
+
+    -n => insert a newline right after the body (requires no argument)
+
+
+    "
+}
+
+quit(){
+    # Exit with error
+    usage && exit 1
+}
+
+while getopts ":h:b:s:n" options; do
+    case "${options}" in 
+    h )
+        HEADER="$OPTARG"
+        ;;
+    b )
+        BODY="$OPTARG"
+        ;;
+    s )
+        if [ -n "$OPTARG" ]; then
+            HEADER_STYLE="$OPTARG"
+        fi
+        ;;
+    n )
+        ADD_NEWLINE_AFTER_HEADER=1
+        ;;
+    \? )
+        echo "Invalid option: $OPTARG" 1>&2
+        quit
+        ;;
+    : )
+        if [ "$OPTARG" -ne "n" ] || ["$OPTARG" -ne "s"]; then
+            echo "$OPTARG requires an argument" 1>&2
+            quit
+        fi
+        ;;
+    esac
+done
+
+if [ -n "$HEADER_STYLE" ]; then
+    if [ $ADD_NEWLINE_AFTER_HEADER = 0 ]; then
+        echo "$HEADER_STYLE $HEADER $BODY" >> README.md
+    else
+        echo "$HEADER_STYLE $HEADER
+$BODY" >> README.md
+    fi
+else
+    if [ $ADD_NEWLINE_AFTER_HEADER = 0 ]; then
+        echo "$HEADER $BODY" >> README.md
+    else
+        echo "$HEADER
+$BODY" >> README.md
+    fi
+fi
+
+if [[ -z "$@" ]]; then
+    usage
+fi
