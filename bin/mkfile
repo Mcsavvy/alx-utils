@@ -2,7 +2,7 @@
 
 USAGE="This utitity allows you to create and perform a series of actions in the context of that file.
 
-USAGE: $0 [ACTION]... FILENAME
+USAGE: mkfile [ACTION]... FILENAME
 
 ACTIONS
 -------
@@ -56,12 +56,12 @@ usage(){
 }
 
 error(){
-    echo "$0: $1" 1>&2
+    echo "$1" 1>&2
     exit 1
 }
 
 if [[ -z "$@" ]]; then
-    error "USAGE: $0 [ACTION]... FILENAME"
+    error "USAGE: mkfile [ACTION]... FILENAME"
 fi
 
 SHEBANG=""
@@ -72,7 +72,7 @@ SPAWN_SHELL=""
 GIT_COMMIT=""
 GIT_PUSH=""
 
-while getopts "hSs:Ee:Xx:Nn:aCc:Pp:" opt; do
+while getopts "hSs:Ee:Xx:Nn:Aa:Cc:Pp:" opt; do
     case "${opt}" in 
     h ) usage | less && exit 0;;
     s )
@@ -89,7 +89,7 @@ while getopts "hSs:Ee:Xx:Nn:aCc:Pp:" opt; do
     ;;
     E ) EDITOR="vi"
     ;;
-    a )
+    A )
         GIT_ADD=1
     ;;
     x )
@@ -142,7 +142,7 @@ fi
 touch "$1"
 
 # add shebang
-if [[ -n "SHEBANG" ]]; then
+if [[ -n "$SHEBANG" ]]; then
     echo "adding shebang to '$1'"
     echo "$SHEBANG" > "$1"
 fi
@@ -150,7 +150,7 @@ fi
 # open file in editor
 if [[ -n "$EDITOR" ]]; then
     echo "opening '$1' in editor"
-    $($EDITOR $1) || exit
+    $EDITOR $1 || exit
 fi
 
 # add file to git
@@ -168,17 +168,17 @@ fi
 # spawn a new shell (to do some other thing with file)
 if [[ -n "$SPAWN_SHELL" ]]; then
     echo "spawning a new shell"
-    $($SPAWN_SHELL)
+    $SPAWN_SHELL
 fi
 
 # commit changes to git
 if [[ -n "$GIT_COMMIT" ]]; then
     echo "commiting changes to git"
-    $($GIT_COMMIT)
+    $GIT_COMMIT
 fi
 
 # push commit to github
 if [[ -n "$GIT_PUSH" ]]; then
     echo "pushing commits to remote repository"
-    $($GIT_PUSH)
+    $GIT_PUSH
 fi

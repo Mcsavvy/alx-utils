@@ -1,0 +1,18 @@
+#!/bin/bash
+
+if [[ $# -eq 0 ]]; then
+    echo "no filename supplied" 1>&2
+    exit 1
+fi
+
+FILENAME="$1"
+OUTPUT_NAME=""
+
+if [[ -n "$2" ]]; then
+    OUTPUT_NAME="$2"
+else
+    OUTPUT_NAME="$(echo $FILENAME | rev |cut -d '.' -f 2- | rev)"
+fi
+
+
+gcc -Wall -pedantic -Werror -Wextra -std=gnu89 -o "$OUTPUT_NAME" "$FILENAME"
