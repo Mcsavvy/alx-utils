@@ -19,16 +19,14 @@ usage(){
     MAIN OPTIONS
     ============
 
-    -h => header text in the description
-    -b => body text in the description
-    -s => header style [default is heading-5 ($HEADER_STYLE)]
-    
-    ADDITIONAL OPTIONS
-    ==================
-
-    -n => insert a newline right after the body (requires no argument)
-
-
+    -h:
+        header text in the description
+    -s:
+        header style [default is heading-5 ($HEADER_STYLE)]
+    -b:
+        description body(can use markdown styles)
+    -n:
+        insert a newline right after the body (requires no argument)
     " | less
 }
 

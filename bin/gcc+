@@ -1,8 +1,38 @@
 #!/bin/bash
 
+HELP="\
+USAGE: gcc+ FILE.c [OUTPUT_FILE]
+
+This command accepts two arguments
+
+1. The name of the file to compile
+2. The name of the output file (this is optional)
+
+if no output file is specified, this command implies the output file name from the name of the C file.
+
+\$ gcc+ hello_world.c
+
+would compile to a file named 'hello_world'
+
+This command also takes it a step further by telling git to ignore the output file (which is almost always desired).
+
+This utility compiles a C file using gcc with the following options/flags:
+
+[+] -Wall
+[+] -pedantic
+[+] -Werror
+[+] -Wextra
+[+] -std=gnu89
+
+These options are ALX-standard options and they would be used by ALX when testing your code.
+"
+
 if [[ $# -eq 0 ]]; then
-    echo "no filename supplied" 1>&2
+    echo "gcc+: no input files" 1>&2
     exit 1
+elif [[ "$1" == "-h" ]]; then
+    echo "$HELP"
+    exit 0
 fi
 
 FILENAME="$1"

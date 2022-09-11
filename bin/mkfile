@@ -66,7 +66,7 @@ fi
 
 SHEBANG=""
 EDITOR=""
-GIT_ADD=0
+GIT_ADD=""
 FILE_MODE=""
 SPAWN_SHELL=""
 GIT_COMMIT=""
@@ -89,8 +89,13 @@ while getopts "hSs:Ee:Xx:Nn:Aa:Cc:Pp:" opt; do
     ;;
     E ) EDITOR="vi"
     ;;
+    a )
+        if [[ -n "$OPTARG" ]]; then
+            GIT_ADD="$OPTARG"
+        fi
+    ;;
     A )
-        GIT_ADD=1
+        GIT_ADD="$1"
     ;;
     x )
         if [[ -n "$OPTARG" ]]; then
@@ -143,31 +148,31 @@ touch "$1"
 
 # add shebang
 if [[ -n "$SHEBANG" ]]; then
-    echo "adding shebang to '$1'"
+    echo "adding shebang '$SHEBANG' to '$1'"
     echo "$SHEBANG" > "$1"
 fi
 
 # open file in editor
 if [[ -n "$EDITOR" ]]; then
-    echo "opening '$1' in editor"
+    echo "opening '$1' using '$EDITOR'"
     $EDITOR $1 || exit
 fi
 
 # add file to git
-if [[ $GIT_ADD -eq 1 ]]; then
-    echo "adding '$1' to git"
-    git add "$1"
+if [[ -n "$GIT_ADD" ]]; then
+    echo "adding '$GIT_ADD' to git"
+    git add $GIT_ADD
 fi
 
 # change file mode
 if [[ -n "$FILE_MODE" ]]; then
-    echo "changing the mode of '$1'"
+    echo "changing file permissions of '$1'"
     chmod "$FILE_MODE" "$1"
 fi
 
 # spawn a new shell (to do some other thing with file)
 if [[ -n "$SPAWN_SHELL" ]]; then
-    echo "spawning a new shell"
+    echo "spawning a new '$SPAWN_SHELL' shell"
     $SPAWN_SHELL
 fi
 
