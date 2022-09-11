@@ -1,0 +1,30 @@
+#!/bin/bash
+INIT_FILE="$HOME/.bashrc"
+cd $(dirname $0)
+CURRENT_DIR="$(pwd)"
+cd "$OLDPWD"
+BIN_PATH="$CURRENT_DIR/bin"
+EXPORT_STATEMENT="export PATH=\"\$PATH:$BIN_PATH\""
+
+if [[ -n "$1" ]]; then
+    if [[ -e "$1" ]]; then
+        INIT_FILE="$1"
+    else
+        echo "file named '$1' does not exist" 1>&2
+        exit 1
+    fi
+fi
+
+if echo "$PATH" | grep -q "$BIN_PATH"; then
+    if [[ "$(which mkfile)" != "$BIN_PATH/mkfile" ]] && [[ "$(which gcc+)" != "$BIN_PATH/gcc+" ]]; then
+        echo "WARNING: multiple versions of the library found." 1>&2
+        exit 1
+    else
+        echo "This library is already available in your current shell"
+    fi
+else
+    # compile whatchar.c
+    $BIN_PATH/gcc+ whatchar.c
+    $EXPORT_STATEMENT
+    echo "This library has been exported and is now available in your current shell"
+fi
