@@ -1,67 +1,43 @@
 #!/bin/bash
+set -e
 
-USAGE="This utitity allows you to create and perform a series of actions in the context of that file.
+USAGE="mkfile [actions] file..."
 
-USAGE: mkfile [ACTION]... FILENAME
+HELP="\
+Create files and simultaneously perform a series of actions on the file.
+
+USAGE: $USAGE
 
 ACTIONS
 -------
-    -S:
-        adds the bash shebang to the top of the file
-    -s PATH:
-        uses the path supplied as shebang. e.g if you supplied \"/usr/bin/node\",
-        your shebang would now be \"#!/usr/bin/node\"
-    
-    -E:
-        edit the created file using vi
-    -e EDITOR:
-        edit the created file using the editor specified
+-S            Adds the bash shebang to the top of the file
+-s <path>     uses the <path> supplied as shebang.
+e.g if you supplied \"/usr/bin/node\",
+your shebang would now be \"#!/usr/bin/node\"
+-E            Edit the created file using vi
+-e <editor>   Edit the created file using the <editor>
+-X            Make the created file executable
+-x <mode>     Change the mode of the file created to <mode>
+-N            Spawns a new shell inside the current one
+-n <shell>    Spawns a new <shell> inside the current one
+-I            Add file to .gitignore
+-i <path>     Adds <path> to .gitignore
+-A            Adds the created file to git
+-a <path>     Adds <path> to git
+-f            Force creation of file even when they already exist
 
-    -X:
-        make the created file executable
-    -x MODE:
-        changes the mode of the file created by doing (chmod MODE) on the created file
+These actions all have a default way they operate and to use the default mode, specify the action in uppercase e.g -C -X.
+To alter the way the action works by default, specify the action in small letters e.g -c -x.
+The default mode does not accept arguments but they other mode does.
 
-    -N:
-        spawns a new shell inside the current one and continues execution after that shell is closed
-    -n:
-        supply the path to the new shell that should be spawned
+NOTE: Every action specified would be performed on each file created.
 
-    -A:
-        adds the created file to git
-    -a PATH:
-        this adds an additional path to git by doing (git add PATH)
-
-    -C:
-        does a git commit
-    -c MESSAGE:
-        does a git commit with the supplied text as commit message
-
-    -P:
-        does git push
-    -p ARGUMENT
-        does git push using text supplied as argument git push
-
-    These actions all have a default way they operate and to use the default mode, specify the action in caps e.g -C -X.
-    To alter the way the action works by default, specify the action in small letters e.g -c -x.
-    The default mode does not accept arguments but they other mode does.
-    
-    NOTE
-    -----
-    These actions are executed in the order that they are specified above.
+NOTICE: Most actions have a default way of operating, and this is always specified using a uppercase letter ie. -X makes a file executable. The default mode accepts no argument, to supply one, you have to use the other form which is always the lowercase letter ie. -x accepts a mode (e.g +777) and sets it on each file specified.
 "
 
-usage(){
-    echo "$USAGE"
-}
-
-error(){
-    echo "$1" 1>&2
-    exit 1
-}
-
 if [[ -z "$@" ]]; then
-    error "USAGE: mkfile [ACTION]... FILENAME"
+    echo "$USAGE" >&2
+    exit 1
 fi
 
 SHEBANG=""
@@ -69,121 +45,109 @@ EDITOR=""
 GIT_ADD=""
 FILE_MODE=""
 SPAWN_SHELL=""
-GIT_COMMIT=""
-GIT_PUSH=""
+GIT_IGNORE=""
+FORCE=0
 
-while getopts "hSs:Ee:Xx:Nn:Aa:Cc:Pp:" opt; do
-    case "${opt}" in 
-    h ) usage | less && exit 0;;
+while getopts "hSs:Ee:Xx:Nn:Ii:Aa:Cc:Pp:f" opt; do
+    case "${opt}" in
+    h ) echo "$HELP" && exit 0;;
     s )
         if [[ -n "$OPTARG" ]]; then
             SHEBANG="#!$OPTARG"
         fi
     ;;
-    S ) SHEBANG="#!/bin/bash"
-    ;;
+    S ) SHEBANG="#!/bin/bash";;
     e )
         if [[ -n "$OPTARG" ]]; then
             EDITOR="$OPTARG"
         fi
     ;;
-    E ) EDITOR="vi"
+    E ) EDITOR="vi";;
+    i )
+        if [[ -n "$OPTARG" ]]; then
+            GIT_IGNORE="$OPTARG"
+        fi
     ;;
+    I ) GIT_IGNORE="...";;
     a )
         if [[ -n "$OPTARG" ]]; then
             GIT_ADD="$OPTARG"
         fi
     ;;
-    A )
-        GIT_ADD="$1"
-    ;;
+    A ) GIT_ADD="...";;
     x )
         if [[ -n "$OPTARG" ]]; then
             FILE_MODE="$OPTARG"
         fi
     ;;
-    X ) FILE_MODE="u+x"
-    ;;
+    X ) FILE_MODE="u+x";;
     n )
         if [[ -n "$OPTARG" ]]; then
             SPAWN_SHELL="$OPTARG"
         fi
     ;;
-    N ) SPAWN_SHELL="$SHELL"
-    ;;
-    c )
-        if [[ -n "$OPTARG" ]]; then
-            GIT_COMMIT="git commit -m '$OPTARG'"
-        fi
-    ;;
-    C ) GIT_COMMIT="git commit"
-    ;;
-    p )
-        if [[ -n "$OPTARG" ]]; then
-            GIT_PUSH="git push $OPTARG"
-        fi
-    ;;
-    P ) GIT_PUSH="git push"
-    ;;
-    \? )
-        error "Invalid option: $OPTARG"
-        ;;
-    : )
-        error "$OPTARG requires an argument"
-        ;;
+    N ) SPAWN_SHELL="$SHELL";;
+    f ) FORCE=1;;
+    \? ) echo "Invalid option: $OPTARG" >&2 && exit 2;;
+    : ) echo "$OPTARG requires an argument" >&2 && exit 3;
     esac
 done
 shift $(expr $OPTIND - 1)
 
-if [[ $# -gt 1 ]]; then
-    error 'too many arguments specified'
-elif [[ $# = 0 ]]; then
-    error 'no filename specified'
-elif [[ -d "$1" ]] || [[ -e "$1" ]]; then
-    error "file or directory '$1' already exists"
+if [[ $# = 0 ]]; then
+    echo 'no filename specified' >&2
+    exit 1
+elif [[ -e "$1" ]] && [ $FORCE -eq 0 ]; then
+    echo "file named '$1' already exists" >&2
+    echo "use -f to ignore this warning (file might be overwritten)" >&2
+    exit 4
+    
 fi
 
-# create file
-touch "$1"
+for f in "$@"
+do
+    # create file
+    touch "$f"
 
-# add shebang
-if [[ -n "$SHEBANG" ]]; then
-    echo "adding shebang '$SHEBANG' to '$1'"
-    echo "$SHEBANG" > "$1"
-fi
+    # add shebang
+    if [[ -n "$SHEBANG" ]]; then
+        echo "adding shebang '$SHEBANG' to '$f'"
+        echo "$SHEBANG" > "$f"
+    fi
 
-# open file in editor
-if [[ -n "$EDITOR" ]]; then
-    echo "opening '$1' using '$EDITOR'"
-    $EDITOR $1 || exit
-fi
+    # open file in editor
+    if [[ -n "$EDITOR" ]]; then
+        echo "opening '$f' using '$EDITOR'"
+        $EDITOR $f
+    fi
 
-# add file to git
-if [[ -n "$GIT_ADD" ]]; then
-    echo "adding '$GIT_ADD' to git"
-    git add $GIT_ADD
-fi
+    # change file mode
+    if [[ -n "$FILE_MODE" ]]; then
+        echo "changing file permissions of '$f'"
+        chmod "$FILE_MODE" "$f"
+    fi
 
-# change file mode
-if [[ -n "$FILE_MODE" ]]; then
-    echo "changing file permissions of '$1'"
-    chmod "$FILE_MODE" "$1"
-fi
+    # spawn a new shell (to do some other thing with file)
+    if [[ -n "$SPAWN_SHELL" ]]; then
+        echo "spawning a new '$SPAWN_SHELL' shell"
+        $SPAWN_SHELL
+    fi
 
-# spawn a new shell (to do some other thing with file)
-if [[ -n "$SPAWN_SHELL" ]]; then
-    echo "spawning a new '$SPAWN_SHELL' shell"
-    $SPAWN_SHELL
-fi
+    # add file to git
+    if [[ -n "$GIT_ADD" ]]; then
+        if [ $GIT_ADD == '...' ]; then
+            GIT_ADD="$f"
+        fi
+        echo "adding '$GIT_ADD' to git"
+        git add $GIT_ADD
+    fi
 
-# commit changes to git
-if [[ -n "$GIT_COMMIT" ]]; then
-    echo "commiting changes to git"
-    $GIT_COMMIT
-fi
-
-# push commit to github
-if [[ -n "$GIT_PUSH" ]]; then
-    echo "pushing commits to remote repository"
-    $GIT_PUSH
-fi
+    # add file to .gitignore
+    if [[ -n "$GIT_IGNORE" ]]; then
+        if [ $GIT_IGNORE == '...' ]; then
+            GIT_IGNORE="$f"
+        fi
+        echo "adding '$GIT_IGNORE' to .gitignore"
+        $(dirname "$0")/gitignore "$GIT_IGNORE"
+    fi
+done

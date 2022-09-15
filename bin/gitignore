@@ -1,0 +1,45 @@
+#!/bin/bash
+
+set -e
+
+USAGE='gitignore <path>...'
+
+HELP="\
+Tell git to ignore certain files (don't push to github)
+
+USAGE: $USAGE
+"
+
+while getopts "h" opt; do
+    case "${opt}" in
+    h ) echo "$HELP" && exit;;
+    esac
+done
+shift $(expr $OPTIND - 1)
+
+if [[ $# -eq 0 ]]; then
+    echo 'no file or directory specified' >&2
+    exit 1
+fi
+
+# Is this a git repo?
+if [ $($(dirname $0)/inside-repo) == true ]; then
+    # Verify if there's a .gitignore file already
+    for f in "$@"
+    do
+        if [[ -e .gitignore ]]; then
+            # Check if the file is already ignored.
+            # Don't cloud the gitignore with duplicate
+            # entries.
+            if [ $(grep -c "^$f\$" .gitignore) == 0 ]; then
+                echo "$f" >> .gitignore
+            else
+                echo "'$f' is already ignored"
+            fi
+        else
+            echo "$f" > .gitignore
+        fi
+    done
+else
+    echo 'fatal: not a git repo'
+fi

@@ -1,0 +1,11 @@
+#!/bin/bash
+
+if [ -d .git ]; then
+    echo true
+else
+    if git rev-parse --git-dir &> /dev/null; then
+        echo true
+    else
+        echo false
+    fi
+fi

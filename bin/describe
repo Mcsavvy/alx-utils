@@ -4,84 +4,71 @@
 # This script adds a new description to the README.md
 # file in the current directory
 
+set -e
 
 HEADER_STYLE="####"
 HEADER=""
 BODY=""
 ADD_NEWLINE_AFTER_HEADER=0
 
-usage(){
+USAGE="describe -t <title> -b <body> [-s <style>] [-n]"
+HELP="\
+Add a new description to your README.md
 
-    echo "Add a new description to your README.md
+USAGE: $USAGE
 
-    Usage: describe [-h HEADER] [-b BODY] [-p HEADER-PREFIX]
+OPTIONS
+-------
+  -t <text>    description header/title
+  -b <text>    description body/content
+  -s <style>   header style (default is $HEADER_STYLE)
+  -n           insert newline before body
+"
 
-    MAIN OPTIONS
-    ============
-
-    -h:
-        header text in the description
-    -s:
-        header style [default is heading-5 ($HEADER_STYLE)]
-    -b:
-        description body(can use markdown styles)
-    -n:
-        insert a newline right after the body (requires no argument)
-    " | less
-}
-
-quit(){
-    # Exit with error
-    usage && exit 1
-}
 
 if [[ $# -eq 0 ]]; then
-    quit
+    echo "$USAGE" 1>&2
+    exit 1
 fi
 
-while getopts ":h:b:s:n" options; do
+while getopts ":ht:b:s:n" options; do
     case "${options}" in 
-    h )
-        HEADER="$OPTARG"
-        ;;
-    b )
-        BODY="$OPTARG"
-        ;;
+    t ) HEADER="$OPTARG";;
+    b ) BODY="$OPTARG";;
     s )
         if [ -n "$OPTARG" ]; then
             HEADER_STYLE="$OPTARG"
         fi
-        ;;
-    n )
-        ADD_NEWLINE_AFTER_HEADER=1
-        ;;
+    ;;
+    n ) ADD_NEWLINE_AFTER_HEADER=1;;
+    h )
+        echo "$HELP" 1>&2
+        exit 1
+    ;;
     \? )
         echo "Invalid option: $OPTARG" 1>&2
-        quit
+        exit 1
         ;;
     : )
         if [[ "$OPTARG" -ne "n" ]]; then
             echo "$OPTARG requires an argument" 1>&2
-            quit
+            exit 1
         fi
         ;;
     esac
 done
-
 shift $(expr $OPTIND - 1)
 
 if [ -n "$HEADER_STYLE" ]; then
     if [ $ADD_NEWLINE_AFTER_HEADER = 0 ]; then
-        echo "$HEADER_STYLE $HEADER $BODY" >> README.md
+        echo -e "$HEADER_STYLE $HEADER$BODY\n" >> README.md
     else
-        echo "$HEADER_STYLE $HEADER
-$BODY" >> README.md
+        echo -e "$HEADER_STYLE $HEADER\n$BODY\n" >> README.md
     fi
 else
     if [ $ADD_NEWLINE_AFTER_HEADER = 0 ]; then
-        echo "$HEADER $BODY" >> README.md
+        echo -e "$HEADER$BODY\n" >> README.md
     else
-        echo "$HEADER
-$BODY" >> README.md
+        echo -e "$HEADER\n$BODY\n" >> README.md
     fi
 fi

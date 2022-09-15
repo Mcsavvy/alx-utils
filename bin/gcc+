@@ -1,48 +1,69 @@
 #!/bin/bash
 
+set -e
+
+USAGE="gcc+ [options] file..."
+
 HELP="\
-USAGE: gcc+ FILE.c [OUTPUT_FILE]
+Compile a C file using Holberton-standard
 
-This command accepts two arguments
+USAGE: $USAGE
 
-1. The name of the file to compile
-2. The name of the output file (this is optional)
+OPTIONS
+-------
 
-if no output file is specified, this command implies the output file name from the name of the C file.
+-i			Tell git to ignore the output file
+-r			Run the file after compilation
+-o <file>	Place the output into <file>. If this is not supplied, it is implied from the name of the last file.
 
-\$ gcc+ hello_world.c
-
-would compile to a file named 'hello_world'
-
-This command also takes it a step further by telling git to ignore the output file (which is almost always desired).
 
 This utility compiles a C file using gcc with the following options/flags:
 
-[+] -Wall
-[+] -pedantic
-[+] -Werror
+[+] -Wall:		Show all warnings
+[+] -Werror:	Don't compile when there are errors
 [+] -Wextra
-[+] -std=gnu89
-
-These options are ALX-standard options and they would be used by ALX when testing your code.
+[+] -std=gnu89  Use the gnu89 C standard to compile
+[+] -pedantic	Strict usage of the gnu89 standard
 "
 
+GITIGNORE=0
+RUN=0
+OUTPUT=""
+
+
+
+while getopts ':ho:ir' opt; do
+	case "${opt}" in
+	h ) echo "$HELP" && exit 0;;
+	i ) GITIGNORE=1;;
+	o ) OUTPUT="$OPTARG";;
+	r ) RUN=1;;
+	\? ) echo "Invalid option: $OPTARG" >&2;;
+    : ) echo "$OPTARG requires an argument" >&2;;
+	esac
+done
+shift $(expr $OPTIND - 1)
+
 if [[ $# -eq 0 ]]; then
-    echo "gcc+: no input files" 1>&2
-    exit 1
-elif [[ "$1" == "-h" ]]; then
-    echo "$HELP"
-    exit 0
+	echo "gcc+: no input files" 1>&2
+	exit 1
 fi
 
-FILENAME="$1"
-OUTPUT_NAME=""
+if [[ -z "$OUTPUT" ]]; then
+	# imply the name of the output file from
+	# the name of the last input file
+	for f in "$@"; do true; done
+	OUTPUT="$(sed -e 's/.c$//' <<< $f)"
+fi
 
-if [[ -n "$2" ]]; then
-    OUTPUT_NAME="$2"
-else
-    OUTPUT_NAME="$(echo $FILENAME | rev |cut -d '.' -f 2- | rev)"
+gcc -Wall -pedantic -Werror -Wextra -std=gnu89 -o "$OUTPUT" $@
+
+if [[ $GITIGNORE -eq 1 ]]; then
+	$(dirname "$0")/gitignore "$OUTPUT" &> /dev/null
+fi
+
+if [[ $RUN -eq 1 ]]; then
+	$(dirname $OUTPUT)/$(basename $OUTPUT)
 fi
 
 
-gcc -Wall -pedantic -Werror -Wextra -std=gnu89 -o "$OUTPUT_NAME" "$FILENAME"
