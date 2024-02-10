@@ -1,5 +1,16 @@
 #!/bin/bash
+# This script installs the library in the current shell or in the init file
+
+# find init file using current shell
+if [[ -n "$BASH" ]]; then
 INIT_FILE="$HOME/.bashrc"
+elif [[ -n "$ZSH_VERSION" ]]; then
+    INIT_FILE="$HOME/.zshrc"
+else
+    echo "This shell is not supported" 1>&2
+    exit 1
+fi
+
 cd $(dirname $0)
 CURRENT_DIR="$(pwd)"
 cd "$OLDPWD"
