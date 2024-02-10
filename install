@@ -3,7 +3,7 @@
 
 # find init file using current shell
 if [[ -n "$BASH" ]]; then
-INIT_FILE="$HOME/.bashrc"
+    INIT_FILE="$HOME/.bashrc"
 elif [[ -n "$ZSH_VERSION" ]]; then
     INIT_FILE="$HOME/.zshrc"
 else
@@ -15,6 +15,9 @@ cd $(dirname $0)
 CURRENT_DIR="$(pwd)"
 cd "$OLDPWD"
 BIN_PATH="$CURRENT_DIR/bin"
+SRC_PATH="$CURRENT_DIR/src"
+
+set -e
 
 if [[ -n "$1" ]]; then
     if [[ -e "$1" ]]; then
@@ -34,7 +37,7 @@ if echo "$PATH" | grep -q "$BIN_PATH"; then
     fi
 else
     # compile whatchar.c
-    $BIN_PATH/gcc+ whatchar.c
+    $BIN_PATH/gcc+ $SRC_PATH/whatchar.c
     echo "export PATH=\"\$PATH:$BIN_PATH\"" >> "$INIT_FILE"
     export PATH="$PATH:$BIN_PATH"
     echo "This library has been permanently installed"
